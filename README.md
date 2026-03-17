@@ -57,3 +57,42 @@ uv run python -c "from app.main import app; print('OK')"
 | GET | `/documents/{id}/compare?v1={id}&v2={id}` | Version comparison |
 | GET | `/health` | Health check |
 
+## Testing with cURL
+
+```bash
+# Health check
+curl http://localhost:8000/health
+
+# Create a new document
+curl -X POST http://localhost:8000/documents \
+  -d "title=Contract Agreement"
+
+# View document editor (returns HTML)
+curl http://localhost:8000/documents/1
+
+# Update document title
+curl -X POST "http://localhost:8000/documents/1?_method=PATCH" \
+  -d "title=Updated Contract Agreement"
+
+# Save a new version
+curl -X POST http://localhost:8000/documents/1/versions \
+  -d "content=This is the first version of the contract." \
+  -d "change_summary=Initial version"
+
+# Save another version (to test versioning)
+curl -X POST http://localhost:8000/documents/1/versions \
+  -d "content=This is the second version with changes." \
+  -d "change_summary=Updated terms and conditions"
+
+# Test duplicate detection (same content as latest)
+curl -X POST http://localhost:8000/documents/1/versions \
+  -d "content=This is the second version with changes." \
+  -d "change_summary=Duplicate test"
+
+# Compare two versions (returns HTML diff)
+curl "http://localhost:8000/documents/1/compare?v1=1&v2=2"
+
+# Delete a document
+curl -X DELETE http://localhost:8000/documents/1
+```
+
