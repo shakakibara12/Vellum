@@ -1,4 +1,6 @@
+"""Jinja2 templates configuration for Vellum application."""
 from pathlib import Path
+
 from fastapi.templating import Jinja2Templates
 
 BASE_DIR = Path(__file__).resolve().parent

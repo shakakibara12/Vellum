@@ -1,17 +1,20 @@
-from fastapi import APIRouter, Request, Form, Depends, HTTPException, BackgroundTasks
-from fastapi.responses import RedirectResponse, HTMLResponse, Response
-from sqlalchemy import select, delete as sql_delete
+"""Document routes for Vellum application.
+
+Handles document CRUD operations, version management, and comparison.
+"""
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from sqlalchemy import delete as sql_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models import Document, DocumentVersion
 from app.services import (
-    hash_content,
-    is_duplicate_content,
-    generate_diff_html,
     check_significance,
-    send_notification
+    generate_diff_html,
+    is_duplicate_content,
+    send_notification,
 )
 from app.templates_config import templates
 
@@ -27,19 +30,21 @@ async def index(request: Request, db: AsyncSession = Depends(get_db)):
         .options(selectinload(Document.versions))
     )
     documents = result.scalars().all()
-    
-    # Handle flash messages
+
     flash_messages = {
         "document_deleted": ("success", "Document deleted successfully.")
     }
     flash = request.query_params.get("flash")
     flash_message = flash_messages.get(flash) if flash else None
-    
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "documents": documents,
-        "flash_message": flash_message
-    })
+
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "documents": documents,
+            "flash_message": flash_message,
+        },
+    )
 
 
 @router.post("/documents")
@@ -56,7 +61,7 @@ async def create_document(title: str = Form(...), db: AsyncSession = Depends(get
 async def get_document(
     request: Request,
     document_id: int,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Render document editor with version history."""
     result = await db.execute(
@@ -69,52 +74,50 @@ async def get_document(
     if not document:
         return RedirectResponse(url="/", status_code=303)
 
-    # Map flash messages to user-friendly text
     flash_messages = {
-        "no_changes": ("warning", "No changes detected. Content is identical to the latest version."),
+        "no_changes": (
+            "warning",
+            "No changes detected. Content is identical to the latest version.",
+        ),
         "version_saved": ("success", "New version saved successfully."),
-        "title_updated": ("success", "Document title updated.")
+        "title_updated": ("success", "Document title updated."),
     }
     flash = request.query_params.get("flash")
     flash_message = flash_messages.get(flash) if flash else None
 
-    return templates.TemplateResponse("editor.html", {
-        "request": request,
-        "document": document,
-        "flash_message": flash_message
-    })
+    return templates.TemplateResponse(
+        "editor.html",
+        {
+            "request": request,
+            "document": document,
+            "flash_message": flash_message,
+        },
+    )
 
 
 @router.post("/documents/{document_id}/versions")
 async def create_version(
     document_id: int,
-    request: Request,
     background_tasks: BackgroundTasks,
     content: str = Form(...),
     change_summary: str | None = Form(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Create a new version for a document."""
-    # Get the document
-    result = await db.execute(
-        select(Document).where(Document.id == document_id)
-    )
+    result = await db.execute(select(Document).where(Document.id == document_id))
     document = result.scalar_one_or_none()
 
     if not document:
         return RedirectResponse(url="/", status_code=303)
 
-    # Check for duplicate content
     is_duplicate = await is_duplicate_content(db, document_id, content)
 
     if is_duplicate:
-        # No changes detected, redirect back with flash message
         return RedirectResponse(
             url=f"/documents/{document_id}?flash=no_changes",
-            status_code=303
+            status_code=303,
         )
 
-    # Calculate next version number
     version_result = await db.execute(
         select(DocumentVersion)
         .where(DocumentVersion.document_id == document_id)
@@ -124,32 +127,28 @@ async def create_version(
     last_version = version_result.scalar_one_or_none()
     next_version = (last_version.version_number + 1) if last_version else 1
 
-    # Check if changes are significant (for notification)
     is_significant = False
     if last_version:
         is_significant = check_significance(last_version.content, content)
 
-    # Create new version
     version = DocumentVersion(
         document_id=document_id,
         version_number=next_version,
         content=content,
-        change_summary=change_summary
+        change_summary=change_summary,
     )
     db.add(version)
 
-    # Update document content
     document.content = content
 
     await db.commit()
 
-    # Add notification to background tasks if changes are significant
     if is_significant:
         background_tasks.add_task(send_notification, document.title, next_version)
 
     return RedirectResponse(
         url=f"/documents/{document_id}?flash=version_saved",
-        status_code=303
+        status_code=303,
     )
 
 
@@ -158,18 +157,14 @@ async def update_document_metadata(
     document_id: int,
     request: Request,
     title: str = Form(...),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Update document metadata (title) without creating a new version."""
-    # Support method override via query parameter
     method_override = request.query_params.get("_method", "").upper()
     if method_override != "PATCH":
-        # This is a regular POST, not a method override
         return RedirectResponse(url=f"/documents/{document_id}", status_code=303)
-    
-    result = await db.execute(
-        select(Document).where(Document.id == document_id)
-    )
+
+    result = await db.execute(select(Document).where(Document.id == document_id))
     document = result.scalar_one_or_none()
 
     if not document:
@@ -180,7 +175,7 @@ async def update_document_metadata(
 
     return RedirectResponse(
         url=f"/documents/{document_id}?flash=title_updated",
-        status_code=303
+        status_code=303,
     )
 
 
@@ -190,53 +185,57 @@ async def compare_versions(
     request: Request,
     v1: int | None = None,
     v2: int | None = None,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Compare two document versions and return an HTML diff table."""
     if not v1 or not v2:
-        return Response(content="<p class='text-gray-500'>Please select two versions to compare.</p>")
-    
-    # Fetch both versions
+        return Response(
+            content="<p class='text-gray-500'>Please select two versions to compare.</p>"
+        )
+
     result = await db.execute(
-        select(DocumentVersion)
-        .where(DocumentVersion.id.in_([v1, v2]))
+        select(DocumentVersion).where(DocumentVersion.id.in_([v1, v2]))
     )
     versions = result.scalars().all()
-    
+
     if len(versions) != 2:
         raise HTTPException(status_code=404, detail="One or both versions not found")
-    
-    # Verify both versions belong to the same document
-    if versions[0].document_id != document_id or versions[1].document_id != document_id:
-        raise HTTPException(status_code=400, detail="Versions do not belong to the specified document")
-    
-    # Generate diff HTML
+
+    if (
+        versions[0].document_id != document_id
+        or versions[1].document_id != document_id
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Versions do not belong to the specified document",
+        )
+
     version_map = {v.id: v for v in versions}
     content1 = version_map[v1].content
     content2 = version_map[v2].content
     version1_num = version_map[v1].version_number
     version2_num = version_map[v2].version_number
-    
+
     diff_html = generate_diff_html(content1, content2)
-    
-    # Return just the diff table with version labels
-    return templates.TemplateResponse("_diff_result.html", {
-        "request": request,
-        "diff_html": diff_html,
-        "version1": version1_num,
-        "version2": version2_num
-    })
+
+    return templates.TemplateResponse(
+        "_diff_result.html",
+        {
+            "request": request,
+            "diff_html": diff_html,
+            "version1": version1_num,
+            "version2": version2_num,
+        },
+    )
 
 
 @router.delete("/documents/{document_id}")
 async def delete_document(
     document_id: int,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Delete a document and all its versions."""
-    result = await db.execute(
-        select(Document).where(Document.id == document_id)
-    )
+    result = await db.execute(select(Document).where(Document.id == document_id))
     document = result.scalar_one_or_none()
 
     if not document:
@@ -245,9 +244,7 @@ async def delete_document(
     await db.execute(
         sql_delete(DocumentVersion).where(DocumentVersion.document_id == document_id)
     )
-    await db.execute(
-        sql_delete(Document).where(Document.id == document_id)
-    )
+    await db.execute(sql_delete(Document).where(Document.id == document_id))
     await db.commit()
 
     return RedirectResponse(url="/?flash=document_deleted", status_code=303)

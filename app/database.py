@@ -1,3 +1,7 @@
+"""Database configuration for Vellum application.
+
+Provides async SQLAlchemy engine setup with aiosqlite driver for SQLite.
+"""
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 
@@ -14,9 +18,8 @@ async_session_factory = async_sessionmaker(
 )
 
 
-class Base(DeclarativeBase):
+class Base(DeclarativeBase):  # pylint: disable=too-few-public-methods
     """Base class for all SQLAlchemy models."""
-    pass
 
 
 async def get_db() -> AsyncSession:

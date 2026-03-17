@@ -1,4 +1,8 @@
-def main():
+"""Vellum command-line entry point."""
+
+
+def main() -> None:
+    """Print hello message."""
     print("Hello from vellum!")
 
 

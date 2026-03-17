@@ -1,6 +1,12 @@
+"""Service layer for Vellum application.
+
+Provides business logic for document hashing, duplicate detection,
+diff generation, and notifications.
+"""
 import hashlib
 import logging
 from difflib import HtmlDiff
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,78 +23,76 @@ def hash_content(content: str) -> str:
 async def is_duplicate_content(
     db: AsyncSession,
     document_id: int,
-    new_content: str
+    new_content: str,
 ) -> bool:
-    """
-    Check if new content is a duplicate of the latest version.
-    
-    Compares the hash of the new content with the hash of the most recent version.
-    Returns True if content is identical (duplicate), False otherwise.
+    """Check if new content is a duplicate of the latest version.
+
+    Compares the hash of the new content with the hash of the most
+    recent version. Returns True if content is identical (duplicate),
+    False otherwise.
     """
     new_hash = hash_content(new_content)
-    
+
     result = await db.execute(
         select(DocumentVersion)
         .where(DocumentVersion.document_id == document_id)
         .order_by(DocumentVersion.version_number.desc())
-        .limit(1)
+        .limit(1),
     )
     latest_version = result.scalar_one_or_none()
-    
+
     if latest_version is None:
         return False
-    
+
     latest_hash = hash_content(latest_version.content)
     return new_hash == latest_hash
 
 
 def generate_diff_html(content1: str, content2: str) -> str:
+    """Generate an HTML diff between two content strings.
+
+    Uses Python's difflib.HtmlDiff to create a side-by-side comparison
+    table. Returns styled HTML showing additions (green) and
+    deletions (red).
     """
-    Generate an HTML diff between two content strings.
-    
-    Uses Python's difflib.HtmlDiff to create a side-by-side comparison table.
-    Returns styled HTML showing additions (green) and deletions (red).
-    """
-    # Split content into lines for line-by-line comparison
     lines1 = content1.splitlines(keepends=True)
     lines2 = content2.splitlines(keepends=True)
-    
-    # Create HtmlDiff instance
+
     htmldiff = HtmlDiff()
-    
-    # Generate the diff table
+
     diff_html = htmldiff.make_table(
         lines1,
         lines2,
         fromdesc="Version A",
         todesc="Version B",
         context=False,
-        numlines=0
+        numlines=0,
     )
-    
+
     return diff_html
 
 
 def check_significance(content1: str, content2: str) -> bool:
-    """
-    Check if changes between two content strings are significant.
-    
+    """Check if changes between two content strings are significant.
+
     Strips whitespace and compares to ignore whitespace-only changes.
     Returns True if changes are significant, False otherwise.
     """
-    stripped1 = ''.join(content1.split())
-    stripped2 = ''.join(content2.split())
+    stripped1 = "".join(content1.split())
+    stripped2 = "".join(content2.split())
     return stripped1 != stripped2
 
 
 def send_notification(document_title: str, version_number: int) -> None:
-    """
-    Send a notification about a significant document change.
-    
+    """Send a notification about a significant document change.
+
     Currently logs to console. In production, this could send emails,
     push notifications, or log to a monitoring service.
     """
-    message = f"📄 SIGNIFICANT CHANGE: '{document_title}' - Version {version_number} saved"
+    message = (
+        f"📄 SIGNIFICANT CHANGE: '{document_title}' - "
+        f"Version {version_number} saved"
+    )
     print("\n" + "=" * 60)
     print(message)
     print("=" * 60 + "\n")
