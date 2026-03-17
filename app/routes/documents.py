@@ -119,6 +119,7 @@ async def create_version(
         select(DocumentVersion)
         .where(DocumentVersion.document_id == document_id)
         .order_by(DocumentVersion.version_number.desc())
+        .limit(1)
     )
     last_version = version_result.scalar_one_or_none()
     next_version = (last_version.version_number + 1) if last_version else 1
