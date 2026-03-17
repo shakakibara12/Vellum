@@ -1,8 +1,24 @@
 <div class="mt-4">
-    <h3 class="text-lg font-semibold text-slate-700 mb-2">
+    <h3 class="text-sm font-medium text-[#8b949e] mb-3">
         Comparison: Version {{ version1 }} vs Version {{ version2 }}
     </h3>
-    <div class="diff-container overflow-x-auto">
-        {{ diff_html|safe }}
+    <div class="diff-container border border-[#30363d] rounded-md overflow-hidden">
+        <div class="overflow-x-auto">
+            {{ diff_html|safe }}
+        </div>
+    </div>
+    <div class="mt-3 flex items-center gap-4 text-xs text-[#8b949e]">
+        <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded bg-[#23863666]"></span>
+            <span>Added</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded bg-[#da363366]"></span>
+            <span>Removed</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded bg-[#d2992266]"></span>
+            <span>Changed</span>
+        </div>
     </div>
 </div>
