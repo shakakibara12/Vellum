@@ -2,6 +2,11 @@
 
 A modern web application for managing legal documents with intelligent version control, duplicate detection, and side-by-side version comparison.
 
+## Images
+![Homepage](res/1.webp)
+![Editor](res/2.webp)
+![Version_Control](res/3.webp)
+
 ## Features
 
 - **Document Management**: Create, edit, and delete legal documents with metadata tracking
