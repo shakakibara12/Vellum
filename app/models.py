@@ -41,8 +41,7 @@ class Document(Base):
     # Relationship to versions
     versions: Mapped[list["DocumentVersion"]] = relationship(
         back_populates="document",
-        cascade="all, delete-orphan",
-        lazy="selectin"
+        cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:

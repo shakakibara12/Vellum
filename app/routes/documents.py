@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request, Form, Depends, HTTPException, Background
 from fastapi.responses import RedirectResponse, HTMLResponse, Response
 from sqlalchemy import select, delete as sql_delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models import Document, DocumentVersion
@@ -20,7 +21,11 @@ router = APIRouter()
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request, db: AsyncSession = Depends(get_db)):
     """Render dashboard with list of all documents."""
-    result = await db.execute(select(Document).order_by(Document.created_at.desc()))
+    result = await db.execute(
+        select(Document)
+        .order_by(Document.created_at.desc())
+        .options(selectinload(Document.versions))
+    )
     documents = result.scalars().all()
     
     # Handle flash messages
@@ -57,6 +62,7 @@ async def get_document(
     result = await db.execute(
         select(Document)
         .where(Document.id == document_id)
+        .options(selectinload(Document.versions))
     )
     document = result.scalar_one_or_none()
 
