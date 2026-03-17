@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Request, Form, Depends
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi import APIRouter, Request, Form, Depends, HTTPException
+from fastapi.responses import RedirectResponse, HTMLResponse, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models import Document, DocumentVersion
-from app.services import hash_content, is_duplicate_content
+from app.services import hash_content, is_duplicate_content, generate_diff_html
 from app.templates_config import templates
 
 router = APIRouter()
@@ -147,3 +147,47 @@ async def update_document_metadata(
         url=f"/documents/{document_id}?flash=title_updated",
         status_code=303
     )
+
+
+@router.get("/documents/{document_id}/compare", response_class=HTMLResponse)
+async def compare_versions(
+    document_id: int,
+    request: Request,
+    v1: int | None = None,
+    v2: int | None = None,
+    db: AsyncSession = Depends(get_db)
+):
+    """Compare two document versions and return an HTML diff table."""
+    if not v1 or not v2:
+        return Response(content="<p class='text-gray-500'>Please select two versions to compare.</p>")
+    
+    # Fetch both versions
+    result = await db.execute(
+        select(DocumentVersion)
+        .where(DocumentVersion.id.in_([v1, v2]))
+    )
+    versions = result.scalars().all()
+    
+    if len(versions) != 2:
+        raise HTTPException(status_code=404, detail="One or both versions not found")
+    
+    # Verify both versions belong to the same document
+    if versions[0].document_id != document_id or versions[1].document_id != document_id:
+        raise HTTPException(status_code=400, detail="Versions do not belong to the specified document")
+    
+    # Generate diff HTML
+    version_map = {v.id: v for v in versions}
+    content1 = version_map[v1].content
+    content2 = version_map[v2].content
+    version1_num = version_map[v1].version_number
+    version2_num = version_map[v2].version_number
+    
+    diff_html = generate_diff_html(content1, content2)
+    
+    # Return just the diff table with version labels
+    return templates.TemplateResponse("_diff_result.html", {
+        "request": request,
+        "diff_html": diff_html,
+        "version1": version1_num,
+        "version2": version2_num
+    })

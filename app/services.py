@@ -1,4 +1,5 @@
 import hashlib
+from difflib import HtmlDiff
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,3 +37,30 @@ async def is_duplicate_content(
     
     latest_hash = hash_content(latest_version.content)
     return new_hash == latest_hash
+
+
+def generate_diff_html(content1: str, content2: str) -> str:
+    """
+    Generate an HTML diff between two content strings.
+    
+    Uses Python's difflib.HtmlDiff to create a side-by-side comparison table.
+    Returns styled HTML showing additions (green) and deletions (red).
+    """
+    # Split content into lines for line-by-line comparison
+    lines1 = content1.splitlines(keepends=True)
+    lines2 = content2.splitlines(keepends=True)
+    
+    # Create HtmlDiff instance
+    htmldiff = HtmlDiff()
+    
+    # Generate the diff table
+    diff_html = htmldiff.make_table(
+        lines1,
+        lines2,
+        fromdesc="Version A",
+        todesc="Version B",
+        context=False,
+        numlines=0
+    )
+    
+    return diff_html

@@ -8,6 +8,45 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- HTMX CDN -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        /* Custom diff styling */
+        .diff-container table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        .diff-container th {
+            background-color: #f1f5f9;
+            padding: 0.5rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+        .diff-container td {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #e2e8f0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .diff-container .diff_add {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .diff-container .diff_sub {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        .diff-container .diff_chg {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .diff-container .diff_empty {
+            background-color: #fafafa;
+            color: #9ca3af;
+        }
+    </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
     <nav class="bg-slate-800 text-white shadow-lg">

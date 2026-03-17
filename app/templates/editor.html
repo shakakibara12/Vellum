@@ -95,6 +95,35 @@
             <h2 class="text-xl font-semibold text-slate-700">Version History</h2>
         </div>
         {% if document.versions %}
+        
+        <!-- Version Comparison Tool -->
+        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <h3 class="text-sm font-medium text-slate-600 mb-3">Compare Versions</h3>
+            <div class="flex items-center gap-4">
+                <select name="v1" id="version-1" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    {% for version in document.versions|sort(attribute='version_number') %}
+                    <option value="{{ version.id }}">Version {{ version.version_number }}</option>
+                    {% endfor %}
+                </select>
+                <span class="text-gray-400">vs</span>
+                <select name="v2" id="version-2" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    {% for version in document.versions|sort(attribute='version_number') %}
+                    <option value="{{ version.id }}" {% if loop.last %}selected{% endif %}>Version {{ version.version_number }}</option>
+                    {% endfor %}
+                </select>
+                <button
+                    hx-get="/documents/{{ document.id }}/compare"
+                    hx-include="#version-1,#version-2"
+                    hx-target="#diff-result"
+                    hx-swap="innerHTML"
+                    class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                    Compare
+                </button>
+            </div>
+            <div id="diff-result" class="mt-4"></div>
+        </div>
+        
         <div class="divide-y divide-gray-200">
             {% for version in document.versions|sort(attribute='version_number', reverse=true) %}
             <div class="px-6 py-4 hover:bg-gray-50 transition">
