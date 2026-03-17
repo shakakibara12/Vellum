@@ -1,9 +1,12 @@
 import hashlib
+import logging
 from difflib import HtmlDiff
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import DocumentVersion
+
+logger = logging.getLogger(__name__)
 
 
 def hash_content(content: str) -> str:
@@ -64,3 +67,29 @@ def generate_diff_html(content1: str, content2: str) -> str:
     )
     
     return diff_html
+
+
+def check_significance(content1: str, content2: str) -> bool:
+    """
+    Check if changes between two content strings are significant.
+    
+    Strips whitespace and compares to ignore whitespace-only changes.
+    Returns True if changes are significant, False otherwise.
+    """
+    stripped1 = ''.join(content1.split())
+    stripped2 = ''.join(content2.split())
+    return stripped1 != stripped2
+
+
+def send_notification(document_title: str, version_number: int) -> None:
+    """
+    Send a notification about a significant document change.
+    
+    Currently logs to console. In production, this could send emails,
+    push notifications, or log to a monitoring service.
+    """
+    message = f"📄 SIGNIFICANT CHANGE: '{document_title}' - Version {version_number} saved"
+    print("\n" + "=" * 60)
+    print(message)
+    print("=" * 60 + "\n")
+    logger.info(message)

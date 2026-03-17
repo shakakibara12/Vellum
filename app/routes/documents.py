@@ -1,11 +1,17 @@
-from fastapi import APIRouter, Request, Form, Depends, HTTPException
+from fastapi import APIRouter, Request, Form, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import RedirectResponse, HTMLResponse, Response
-from sqlalchemy import select
+from sqlalchemy import select, delete as sql_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models import Document, DocumentVersion
-from app.services import hash_content, is_duplicate_content, generate_diff_html
+from app.services import (
+    hash_content,
+    is_duplicate_content,
+    generate_diff_html,
+    check_significance,
+    send_notification
+)
 from app.templates_config import templates
 
 router = APIRouter()
@@ -16,7 +22,19 @@ async def index(request: Request, db: AsyncSession = Depends(get_db)):
     """Render dashboard with list of all documents."""
     result = await db.execute(select(Document).order_by(Document.created_at.desc()))
     documents = result.scalars().all()
-    return templates.TemplateResponse("index.html", {"request": request, "documents": documents})
+    
+    # Handle flash messages
+    flash_messages = {
+        "document_deleted": ("success", "Document deleted successfully.")
+    }
+    flash = request.query_params.get("flash")
+    flash_message = flash_messages.get(flash) if flash else None
+    
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "documents": documents,
+        "flash_message": flash_message
+    })
 
 
 @router.post("/documents")
@@ -65,6 +83,7 @@ async def get_document(
 async def create_version(
     document_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     content: str = Form(...),
     change_summary: str | None = Form(None),
     db: AsyncSession = Depends(get_db)
@@ -81,7 +100,7 @@ async def create_version(
 
     # Check for duplicate content
     is_duplicate = await is_duplicate_content(db, document_id, content)
-    
+
     if is_duplicate:
         # No changes detected, redirect back with flash message
         return RedirectResponse(
@@ -98,6 +117,11 @@ async def create_version(
     last_version = version_result.scalar_one_or_none()
     next_version = (last_version.version_number + 1) if last_version else 1
 
+    # Check if changes are significant (for notification)
+    is_significant = False
+    if last_version:
+        is_significant = check_significance(last_version.content, content)
+
     # Create new version
     version = DocumentVersion(
         document_id=document_id,
@@ -111,6 +135,10 @@ async def create_version(
     document.content = content
 
     await db.commit()
+
+    # Add notification to background tasks if changes are significant
+    if is_significant:
+        background_tasks.add_task(send_notification, document.title, next_version)
 
     return RedirectResponse(
         url=f"/documents/{document_id}?flash=version_saved",
@@ -191,3 +219,28 @@ async def compare_versions(
         "version1": version1_num,
         "version2": version2_num
     })
+
+
+@router.delete("/documents/{document_id}")
+async def delete_document(
+    document_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete a document and all its versions."""
+    result = await db.execute(
+        select(Document).where(Document.id == document_id)
+    )
+    document = result.scalar_one_or_none()
+
+    if not document:
+        return RedirectResponse(url="/", status_code=303)
+
+    await db.execute(
+        sql_delete(DocumentVersion).where(DocumentVersion.document_id == document_id)
+    )
+    await db.execute(
+        sql_delete(Document).where(Document.id == document_id)
+    )
+    await db.commit()
+
+    return RedirectResponse(url="/?flash=document_deleted", status_code=303)

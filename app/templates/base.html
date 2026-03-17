@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,35 +8,55 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- HTMX CDN -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         /* Custom diff styling */
         .diff-container table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.875rem;
+            font-size: 0.75rem;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;
         }
         .diff-container th {
             background-color: #f1f5f9;
-            padding: 0.5rem 1rem;
+            padding: 0.75rem 1rem;
             text-align: left;
             font-weight: 600;
             color: #475569;
             border: 1px solid #e2e8f0;
         }
         .diff-container td {
-            padding: 0.25rem 0.5rem;
+            padding: 0.375rem 0.75rem;
             border: 1px solid #e2e8f0;
-            font-family: monospace;
+            font-family: inherit;
             white-space: pre-wrap;
             word-break: break-all;
+            line-height: 1.5;
         }
         .diff-container .diff_add {
             background-color: #dcfce7;
             color: #166534;
+            font-weight: 500;
         }
         .diff-container .diff_sub {
             background-color: #fee2e2;
             color: #991b1b;
+            text-decoration: line-through;
         }
         .diff-container .diff_chg {
             background-color: #fef3c7;
@@ -46,27 +66,56 @@
             background-color: #fafafa;
             color: #9ca3af;
         }
+        .diff-container tr:hover td {
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <nav class="bg-slate-800 text-white shadow-lg">
-        <div class="max-w-6xl mx-auto px-4 py-4">
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-full flex flex-col font-sans antialiased">
+    <nav class="bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-xl">
+        <div class="max-w-6xl mx-auto px-6 py-4">
             <div class="flex justify-between items-center">
-                <a href="/" class="text-xl font-bold hover:text-blue-300 transition">Vellum</a>
-                <div class="space-x-4">
-                    <a href="/" class="hover:text-blue-300 transition">Documents</a>
+                <a href="/" class="text-xl font-bold tracking-tight hover:text-blue-300 transition flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Vellum
+                </a>
+                <div class="space-x-6">
+                    <a href="/" class="text-sm font-medium hover:text-blue-300 transition">Documents</a>
                 </div>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto px-4 py-8">
+    <main class="max-w-6xl mx-auto px-6 py-8 w-full flex-1">
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="bg-slate-800 text-gray-400 mt-auto">
-        <div class="max-w-6xl mx-auto px-4 py-4 text-center text-sm">
-            &copy; 2026 Vellum - Smart Legal Document Manager
+    <footer class="bg-gradient-to-r from-slate-900 to-slate-800 text-gray-400 mt-auto">
+        <div class="max-w-6xl mx-auto px-6 py-5 text-center text-sm">
+            <p>&copy; 2026 Vellum - Smart Legal Document Manager</p>
         </div>
     </footer>
 </body>
