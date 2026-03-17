@@ -1,8 +1,13 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 
 from app.database import engine, Base
 from app.models import Document, DocumentVersion  # noqa: F401 - Import models to register them
+from app.routes import documents
+
+BASE_DIR = Path(__file__).resolve().parent
 
 
 @asynccontextmanager
@@ -23,8 +28,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Include routers
+app.include_router(documents.router)
 
-@app.get("/")
-async def root():
-    """Root endpoint returning API status."""
+
+@app.get("/health")
+async def health():
+    """Health check endpoint returning API status."""
     return {"status": "ok"}
