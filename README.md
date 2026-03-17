@@ -44,6 +44,21 @@ uv run uvicorn app.main:app --reload
 uv run python -c "from app.main import app; print('OK')"
 ```
 
+## Docker
+
+```bash
+# Build and run with Docker Compose
+docker compose up -d --build
+
+# View logs
+docker compose logs -f
+
+# Stop the application
+docker compose down
+```
+
+The application will be available at http://localhost:8000
+
 ## API Endpoints
 
 | Method | Endpoint | Description |

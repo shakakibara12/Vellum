@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Misc
+.git/
+.gitignore
+.qwen/
+*.md
+!README.md
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Database
+*.db
+vellum.db
